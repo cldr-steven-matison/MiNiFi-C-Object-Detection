@@ -1,0 +1,8 @@
+models/build/
+models/.venv/
+flow/efm-plan.json
+deployer-command*.json
+*.part
+__pycache__/
+.DS_Store
+.ruff_cache/

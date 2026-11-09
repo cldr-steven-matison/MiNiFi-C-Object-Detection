@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck conf/frames.sh k8s/*.sh models/make-models.sh scripts/*.sh source/serve-clips.sh
+      - name: bash -n
+        run: for f in conf/frames.sh k8s/*.sh models/make-models.sh scripts/*.sh source/serve-clips.sh; do bash -n "$f"; done
+      - name: ruff
+        run: pipx run ruff check .
+
+  flow:
+    # no MiNiFi binaries or models on a hosted runner: the flow builder and the sample's shape
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: build the flow, both versions
+        run: |
+          pip install pyyaml
+          python3 flow/build_flow.py --fps 0.25 --out /tmp/cfg-v2.yml
+          python3 flow/build_flow.py --version v1 --out /tmp/cfg-v1.yml
+          grep -c '@MINIFI_HOME@' /tmp/cfg-v2.yml
+      - name: conf/config.yml is what flow/build_flow.py writes
+        run: |
+          python3 flow/build_flow.py --out /tmp/cfg-default.yml
+          diff -u conf/config.yml /tmp/cfg-default.yml
+      - name: the sample clip is a 30 s 720p mp4
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+          probe=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height:format=duration -of csv=p=0 sample/dashcam-street-30s.mp4 | tr '\n' ' ')
+          echo "$probe"
+          case "$probe" in "1280,720 30."*) ;; *) echo "not a 30 s 1280x720 clip" >&2; exit 1 ;; esac

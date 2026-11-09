@@ -1,0 +1,12 @@
+# The same rule set as NanoStream's, so the two repos lint alike.
+line-length = 130
+target-version = "py310"
+
+[lint]
+select = ["E", "F", "W", "B"]
+ignore = ["B905"]
+
+[lint.per-file-ignores]
+# REL_SUCCESS, REL_FAILURE and REL_ORIGINAL are not defined in the file: MiNiFi C++ injects them
+# into a native Python processor's module when it loads it.
+"conf/ExtractVideoFrames.py" = ["F821"]

@@ -1,0 +1,7 @@
+# For models/make-models.sh only; the agent never needs these.
+ultralytics>=8.3,<8.4
+torch
+torchvision
+onnx
+onnxslim
+onnxruntime

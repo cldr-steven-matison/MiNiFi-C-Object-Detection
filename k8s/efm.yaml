@@ -1,0 +1,54 @@
+# The EFM-managed agent: the same image, user and limits as the bench pod, enrolled by EFM's own
+# deployer. ConfigMap minifi-detect-deployer holds the command EFM's generateCommand returned,
+# verbatim (k8s/efm-enroll.sh). A pod restart re-runs it with the same agentIdentifier into a fresh
+# container, which re-registers as the same agent. The flow comes from EFM (flow/efm_flow.py publish).
+# Set EFM_HEALTH to your EFM's actuator URL as seen from the pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minifi-detect-efm
+  namespace: minifi-detect
+  labels: {app: minifi-detect-efm}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: minifi-detect-efm}
+  template:
+    metadata:
+      labels: {app: minifi-detect-efm}
+    spec:
+      securityContext: {runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000}
+      containers:
+      - name: minifi
+        image: minifi-detect:2.26.09-b42
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -e
+          for i in $(seq 1 120); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$EFM_HEALTH" || true)
+            [ "$code" = 200 ] && { echo "EFM up after $i tries"; break; }
+            echo "EFM not ready ($code), retry $i"; sleep 5
+          done
+          mkdir -p /tmp/minifi-detect/clips /tmp/minifi-detect/out /tmp/minifi-detect/meta /tmp/minifi-detect/fail /home/minifi/minifi-cpp-efm
+          cd /home/minifi/minifi-cpp-efm
+          bash /deployer/deploy.sh
+          exec tail -F /home/minifi/minifi-cpp-efm/nifi-minifi-cpp-2.26.09/logs/minifi-app.log
+        env:
+        - {name: EFM_HEALTH, value: "http://efm.cld-streaming.svc:10090/efm/actuator/health"}
+        # the image sets MINIFI_HOME to its bench install; without this the deployed binary runs
+        # that tree (C2 off) and never reaches EFM
+        - {name: MINIFI_HOME, value: /home/minifi/minifi-cpp-efm/nifi-minifi-cpp-2.26.09}
+        resources:
+          requests: {cpu: "1", memory: 1Gi}
+          limits: {cpu: "6", memory: 3Gi}
+        volumeMounts:
+        - {name: deployer, mountPath: /deployer, readOnly: true}
+        - {name: work, mountPath: /tmp/minifi-detect}
+      volumes:
+      - name: deployer
+        configMap: {name: minifi-detect-deployer}
+      - name: work
+        emptyDir: {sizeLimit: 4Gi}
