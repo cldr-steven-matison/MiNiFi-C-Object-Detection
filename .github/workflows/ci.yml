@@ -16,6 +16,19 @@ jobs:
       - name: ruff
         run: pipx run ruff check .
 
+  processor:
+    # ExtractVideoFrames on the sample clip, outside the agent, with the agent's pinned opencv and numpy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: packages
+        run: pip install -r conf/requirements.txt pytest
+      - name: pytest
+        run: pytest -q tests
+
   flow:
     # no MiNiFi binaries or models on a hosted runner: the flow builder and the sample's shape
     runs-on: ubuntu-latest

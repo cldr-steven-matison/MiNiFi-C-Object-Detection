@@ -149,7 +149,8 @@ Nothing in the flow listens on a port.
 | `flow/efm_flow.py` | the same flow as an EFM class flow, through the Designer API: pin, build, set, validate, publish, export |
 | `k8s/` | the image, the bench Deployment and the EFM-enrolled Deployment |
 | `tools/places_parity.py` | checks Tract's ClassifyImage answers against onnxruntime |
-| `.github/workflows/ci.yml`, `ruff.toml` | shellcheck, `bash -n` and ruff on every push, both flow versions built, `conf/config.yml` compared with what the builder writes, the sample probed; the lint rules |
+| `tests/` | ExtractVideoFrames run outside the agent on the sample clip, against fakes of the native session: Run 1's 30 frames, the attributes, the HUD mask, the window and width, the spooled and failure paths |
+| `.github/workflows/ci.yml`, `ruff.toml` | shellcheck, `bash -n` and ruff on every push, the processor's tests, both flow versions built, `conf/config.yml` compared with what the builder writes, the sample probed; the lint rules |
 
 ## Get the bits
 

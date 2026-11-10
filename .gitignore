@@ -6,3 +6,4 @@ deployer-command*.json
 __pycache__/
 .DS_Store
 .ruff_cache/
+.pytest_cache/
